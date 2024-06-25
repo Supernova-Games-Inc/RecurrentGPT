@@ -1,15 +1,22 @@
 import re
-from openai import OpenAI
+import os
 import re
+from openai import OpenAI
 api_key = os.getenv("OPENAI_API_KEY")
 api_base = os.getenv("OPENAI_API_BASE")
-def get_api_response(content: str, max_tokens=None):
+
+def get_api_response(content: str, language, max_tokens=None):
     client = OpenAI(api_key=api_key,base_url=api_base)
+    content_statement = 'You are a helpful and creative assistant for writing novel.'
+    if language != "":
+        content_statement += f"You are professional in {language} language and all of your response should be able in {language} language."
+
     response = client.chat.completions.create(
-        model='gpt-4o-2024-05-13',
+        model='gpt-3.5-turbo',
+        # model='gpt-4o-2024-05-13',
         messages=[{
             'role': 'system',
-            'content': 'You are a helpful and creative assistant for writing novel.'
+            'content': content_statement
         }, {
             'role': 'user',
             'content': content,

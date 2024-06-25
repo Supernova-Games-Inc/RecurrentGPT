@@ -14,4 +14,4 @@ options="\
         --topic $topic \
         --type $type \
         "
-python main.py $options
+python3 main.py $options
