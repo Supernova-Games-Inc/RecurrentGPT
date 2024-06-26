@@ -18,11 +18,11 @@ def init_prompt(novel_type, description, language):
     if description == "":
         description = ""
     else:
-        description = " about " + description
+        description = "about " + description
     if language != "":
         description += f" in {language} language"
     return f"""
-Please write a {novel_type} novel{description}with 50 chapters. Follow the format below precisely:
+Please write a {novel_type} novel {description} with 50 chapters. Follow the format below precisely:
 
 Begin with the name of the novel.
 Next, write an outline for the first chapter. The outline should describe the background and the beginning of the novel.
@@ -46,7 +46,7 @@ Make sure to be precise and follow the output format strictly.
 
 def init(novel_type, description, language, save_story, request: gr.Request):
     out_file = None
-    if save_story == "Yes":
+    if save_story == "Yes" or save_story == "是":
         out_file = f"{novel_type}_{description}_{language}.txt"
 
     cookie = request.headers.get('cookie', None)
@@ -57,7 +57,9 @@ def init(novel_type, description, language, save_story, request: gr.Request):
         cookie = cookie.split('; _gat_gtag')[0]
 
     if novel_type == "":
-        novel_type = "Science Fiction"
+        # novel_type = "Science Fiction"
+        novel_type = "叙事"
+
     global _CACHE
 
     init_paragraphs = get_init(text=init_prompt(novel_type, description, language),response_file=out_file)
@@ -66,7 +68,7 @@ def init(novel_type, description, language, save_story, request: gr.Request):
         'output_paragraph': init_paragraphs['Paragraph 3'],
         'input_paragraph': '\n\n'.join([init_paragraphs['Paragraph 1'], init_paragraphs['Paragraph 2']]),
         'output_memory': init_paragraphs['Summary'],
-        "output_instruction": [init_paragraphs['Instruction 1'], init_paragraphs['Instruction 2'], init_paragraphs['Instruction 3']]
+        'output_instruction': [init_paragraphs['Instruction 1'], init_paragraphs['Instruction 2'], init_paragraphs['Instruction 3']]
     }
 
     _CACHE[cookie] = {"start_input_to_human": start_input_to_human,
@@ -138,7 +140,7 @@ def step(novel_type, description, language, short_memory, long_memory, save_stor
 
 def controled_step(novel_type, description, language, short_memory, save_story, long_memory, selected_instruction, current_paras, request: gr.Request, ):
     out_file = None
-    if save_story == "Yes":
+    if save_story == "Yes" or save_story == "是":
         out_file = f"{novel_type}_{description}_{language}.txt"
     
     if current_paras == "":
@@ -180,7 +182,6 @@ def controled_step(novel_type, description, language, short_memory, save_story, 
         human.step()
         writer.input = human.output
         writer.step()
-    # long_memory = parse_instructions(writer.long_memory)
     long_memory = parse_instructions(writer.long_memory)
     # short memory, long memory, current written paragraphs, 3 next instructions
     return writer.output['output_memory'], long_memory, current_paras + '\n\n' + writer.output['input_paragraph'], selected_instruction, *writer.output['output_instruction']
@@ -188,95 +189,90 @@ def controled_step(novel_type, description, language, short_memory, save_story, 
 
 # SelectData is a subclass of EventData
 def on_select(instruction1, instruction2, instruction3, evt: gr.SelectData):
-    selected_plan = int(evt.value.replace("Instruction ", ""))
+    # selected_plan = int(evt.value.replace("Instruction ", ""))
+    selected_plan = int(evt.value.replace("情节发展 ", ""))
     selected_plan = [instruction1, instruction2, instruction3][selected_plan-1]
     return selected_plan
 
 with gr.Blocks(title="RecurrentGPT", css="footer {visibility: hidden}", theme="default") as demo:
-    # gr.Markdown(
-    #     """
-    # # 
+    # with gr.Tab("Auto-Generation"):
+    #     with gr.Column():
+    #         with gr.Row():
+    #             novel_type = gr.Textbox(
+    #                 label="Novel Type", placeholder="e.g. science fiction")
+    #             description = gr.Textbox(label="Topic")
+    #             language = gr.Textbox(label="Language")
+    #             save_story = gr.Radio(choices=["Yes", "No"], label="Save Story")
+    #         gr.Examples(["Science Fiction", "Romance", "Mystery", "Fantasy",
+    #                     "Historical", "Horror", "Thriller", "Western", "Young Adult"],
+    #                     inputs=[novel_type], elem_id="example_selector")
+    #         btn_init = gr.Button(
+    #             "Init Novel Generation", elem_id="init_button")
+    #         written_paras = gr.Textbox(
+    #             label="Written Paragraphs (editable)", lines=21)
 
-    # """)
-    # Auto Generation Module
-    with gr.Tab("Auto-Generation"):
-        with gr.Column():
-            with gr.Row():
-                novel_type = gr.Textbox(
-                    label="Novel Type", placeholder="e.g. science fiction")
-                description = gr.Textbox(label="Topic")
-                language = gr.Textbox(label="Language")
-                save_story = gr.Radio(choices=["Yes", "No"], label="Save Story")
-            gr.Examples(["Science Fiction", "Romance", "Mystery", "Fantasy",
-                        "Historical", "Horror", "Thriller", "Western", "Young Adult"],
-                        inputs=[novel_type], elem_id="example_selector")
-            btn_init = gr.Button(
-                "Init Novel Generation", elem_id="init_button")
-            written_paras = gr.Textbox(
-                label="Written Paragraphs (editable)", lines=21)
-
-        with gr.Column():
-            gr.Markdown("### Memory Module")
-            short_memory = gr.Textbox(
-                label="Short-Term Memory (editable)", lines=3)
-            long_memory = gr.Textbox(
-                label="Long-Term Memory (editable)", lines=6)
-            gr.Markdown("### Instruction Module")
-            instruction1 = gr.Textbox(
-                label="Instruction 1 (editable)", lines=4)
-            instruction2 = gr.Textbox(
-                label="Instruction 2 (editable)", lines=4)
-            instruction3 = gr.Textbox(
-                label="Instruction 3 (editable)", lines=4)
-            selected_plan = gr.Textbox(
-                label="Revised Instruction (from last step)", lines=2)
-        btn_step = gr.Button("Next Step", elem_id="step_button")
-        btn_init.click(init, inputs=[novel_type, description, language, save_story], outputs=[
-            short_memory, long_memory, written_paras, instruction1, instruction2, instruction3])
-        btn_step.click(step, inputs=[novel_type, description, language, save_story, short_memory, long_memory, instruction1, instruction2, instruction3, written_paras], outputs=[
-            short_memory, long_memory, written_paras, selected_plan, instruction1, instruction2, instruction3])
+    #     with gr.Column():
+    #         gr.Markdown("### Memory Module")
+    #         short_memory = gr.Textbox(
+    #             label="Short-Term Memory (editable)", lines=3)
+    #         long_memory = gr.Textbox(
+    #             label="Long-Term Memory (editable)", lines=6)
+    #         gr.Markdown("### Instruction Module")
+    #         instruction1 = gr.Textbox(
+    #             label="Instruction 1 (editable)", lines=4)
+    #         instruction2 = gr.Textbox(
+    #             label="Instruction 2 (editable)", lines=4)
+    #         instruction3 = gr.Textbox(
+    #             label="Instruction 3 (editable)", lines=4)
+    #         selected_plan = gr.Textbox(
+    #             label="Revised Instruction (from last step)", lines=2)
+    #     btn_step = gr.Button("Next Step", elem_id="step_button")
+    #     btn_init.click(init, inputs=[novel_type, description, language, save_story], outputs=[
+    #         short_memory, long_memory, written_paras, instruction1, instruction2, instruction3])
+    #     btn_step.click(step, inputs=[novel_type, description, language, save_story, short_memory, long_memory, instruction1, instruction2, instruction3, written_paras], outputs=[
+    #         short_memory, long_memory, written_paras, selected_plan, instruction1, instruction2, instruction3])
     
     # new tab
-    with gr.Tab("Select-Generation"):
+    with gr.Tab("选择性故事生成"):
         with gr.Column():
             with gr.Row():
                 novel_type = gr.Textbox(
-                    label="Novel Type", placeholder="e.g. science fiction")
-                description = gr.Textbox(label="Topic")
-                language = gr.Textbox(label="Language")
-                save_story = gr.Radio(choices=["Yes", "No"], label="Save Story")
-            gr.Examples(["Science Fiction", "Romance", "Mystery", "Fantasy",
-                        "Historical", "Horror", "Thriller", "Western", "Young Adult"],
+                    label="小说类型", placeholder="例如: 幻想架空")
+                description = gr.Textbox(label="主题")
+                # language = gr.Textbox(label="Language")
+                language = gr.Radio(choices=["English", "中文"], label="语言")
+                save_story = gr.Radio(choices=["是", "否"], label="保存故事")
+            gr.Examples(["科幻", "言情", "悬疑", "架空",
+                        "历史", "恐怖", "搞笑", "传记"],
                         inputs=[novel_type], elem_id="example_selector")
             btn_init = gr.Button(
-                "Init Novel Generation", elem_id="init_button")
+                "生成故事", elem_id="init_button")
             written_paras = gr.Textbox(
-                label="Written Paragraphs (editable)", lines=21)
+                label="故事主体段落", lines=21)
 
         with gr.Column():
-            gr.Markdown("### Memory Module")
+            gr.Markdown("### 记忆模块")
             short_memory = gr.Textbox(
-                label="Short-Term Memory (editable)", lines=3)
+                label="短期记忆", lines=3)
             long_memory = gr.Textbox(
-                label="Long-Term Memory (editable)", lines=6)
-            gr.Markdown("### Instruction Module")
+                label="长期记忆", lines=6)
+            gr.Markdown("### 故事情节发展模块")
             instruction1 = gr.Textbox(
-                label="Instruction 1 (editable)", lines=4)
+                label="情节发展 1 (可修改)", lines=4)
             instruction2 = gr.Textbox(
-                label="Instruction 2 (editable)", lines=4)
+                label="情节发展 2 (可修改)", lines=4)
             instruction3 = gr.Textbox(
-                label="Instruction 3 (editable)", lines=4)
+                label="情节发展 3 (可修改)", lines=4)
             last_step = gr.Textbox(
-                label="Instruction from last step", lines=2)
+                label="上一个选择的情节", lines=2)
         with gr.Column():
             with gr.Column(scale=1, min_width=100):
-                            selected_plan = gr.Radio(["Instruction 1", "Instruction 2", "Instruction 3"], label="selected_plan")
-                                                    #  info="Select the instruction you want to revise and use for the next step generation.")
+                            selected_plan = gr.Radio(["情节发展 1", "情节发展  2", "情节发展 3"], label="选择发展")
             with gr.Column(scale=3, min_width=300):
                             selected_instruction = gr.Textbox(
-                                label="Selected Instruction (editable)", max_lines=5, lines=5)
+                                label="选择的情节发展（可修改）", max_lines=5, lines=5)
 
-        btn_step = gr.Button("Next Step", elem_id="step_button")
+        btn_step = gr.Button("下一步", elem_id="step_button")
         btn_init.click(init, inputs=[novel_type, description, language, save_story], outputs=[
             short_memory, long_memory, written_paras, instruction1, instruction2, instruction3])
         btn_step.click(controled_step, inputs=[novel_type, description, language, save_story, short_memory, long_memory, selected_instruction, written_paras], outputs=[
