@@ -49,11 +49,13 @@ def get_init(init_text=None,text=None,language=None,response_file=None):
             with open(response_file, 'a', encoding='utf-8') as f:
                 f.write(f"Init output here:\n{response}\n\n")
     else:
-        with open(init_text,'r',encoding='utf-8') as f:
-            response = f.read()
-        f.close()
+        # with open(init_text,'r',encoding='utf-8') as f:
+        #     response = f.read()
+        # f.close()
+        response = init_text + get_api_response(text, language)
+        print(response)
     paragraphs = {
-        "name":"",
+        "Title":"",
         "Outline":"",
         "Paragraph 1":"",
         "Paragraph 2":"",
@@ -63,8 +65,7 @@ def get_init(init_text=None,text=None,language=None,response_file=None):
         "Instruction 2":"", 
         "Instruction 3":""    
     }
-    paragraphs['name'] = get_content_between_a_b('Name:','Outline',response)
-    
+    paragraphs['Title'] = get_content_between_a_b('Title:','Outline',response)
     paragraphs['Paragraph 1'] = get_content_between_a_b('Paragraph 1:','Paragraph 2:',response)
     paragraphs['Paragraph 2'] = get_content_between_a_b('Paragraph 2:','Paragraph 3:',response)
     paragraphs['Paragraph 3'] = get_content_between_a_b('Paragraph 3:','Summary',response)
