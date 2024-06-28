@@ -34,7 +34,7 @@ if __name__ == '__main__':
     human = Human(input=start_input_to__human, memory=None, embedder=embedder)
     #select plan
     human.input["output_instruction"] = human.select_plan(args.r_file)
-    print(human.input["output_instruction"])
+    # print(human.input["output_instruction"])
     human.step(args.r_file)
     start_short_memory = init_paragraphs['Summary']
     writer_start_input = human.output

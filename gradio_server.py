@@ -10,7 +10,6 @@ import re
 
 _CACHE = {}
 
-
 # Build the semantic search model
 embedder = SentenceTransformer('multi-qa-mpnet-base-cos-v1')
 def formated_user_story(title, outline, p1, p2, p3):
@@ -21,36 +20,6 @@ Paragraph 1: {p1}
 Paragraph 2: {p2}
 Paragraph 3: {p3}
 """
-
-# def init_prompt(novel_type, description, language):
-#     if description == "":
-#         description = ""
-#     else:
-#         description = "about " + description
-#     if language != "":
-#         description += f" in {language} language"
-#     return f"""
-# Please write a {novel_type} novel {description} with 50 chapters. Follow the format below precisely:
-
-# Begin with the title of the novel.
-# Next, write an outline for the first chapter. The outline should describe the background and the beginning of the novel.
-# Write the first three paragraphs with their indication of the novel based on your outline. Write in a novelistic style and take your time to set the scene.
-# Write a summary that captures the key information of the three paragraphs.
-# Finally, write three different instructions for what to write next, each containing around five sentences. Each instruction should present a possible, interesting continuation of the story.
-# The output format should follow these guidelines:
-# Title: <title of the novel>
-# Outline: <outline for the first chapter>
-# Paragraph 1: <content for paragraph 1>
-# Paragraph 2: <content for paragraph 2>
-# Paragraph 3: <content for paragraph 3>
-# Summary: <content of summary>
-# Instruction 1: <content for instruction 1>
-# Instruction 2: <content for instruction 2>
-# Instruction 3: <content for instruction 3>
-
-# Make sure to be precise and follow the output format strictly.
-
-# """
 
 def init_prompt(novel_type, description, language, written_paras):
     if description != "":
@@ -150,7 +119,7 @@ Paragraphs:
 {start_input_to_human['input_paragraph']}"""
     long_memory = parse_instructions([init_paragraphs['Paragraph 1'], init_paragraphs['Paragraph 2'], init_paragraphs['Paragraph 3']])
     # short memory, long memory, current written paragraphs, 3 next instructions
-    print("inital", written_paras)
+    # print("inital", written_paras)
     return start_input_to_human['output_memory'], long_memory, written_paras, init_paragraphs['Instruction 1'], init_paragraphs['Instruction 2'], init_paragraphs['Instruction 3']
 
 def init_continue(novel_type, description, language, title, outline, p1, p2, p3, written_paras, save_story, request: gr.Request):
@@ -192,7 +161,7 @@ Paragraphs:
 {start_input_to_human['input_paragraph']}"""
     long_memory = parse_instructions([init_paragraphs['Paragraph 1'], init_paragraphs['Paragraph 2'], init_paragraphs['Paragraph 3']])
     # short memory, long memory, current written paragraphs, 3 next instructions
-    print("inital", written_paras)
+    # print("inital", written_paras)
     return start_input_to_human['output_memory'], long_memory, written_paras, init_paragraphs['Instruction 1'], init_paragraphs['Instruction 2'], init_paragraphs['Instruction 3']
 
 def step(novel_type, description, language, short_memory, long_memory, save_story, instruction1, instruction2, instruction3, current_paras, request: gr.Request,):
@@ -203,7 +172,7 @@ def step(novel_type, description, language, short_memory, long_memory, save_stor
     if current_paras == "":
         return "", "", "", "", "", ""
     global _CACHE
-    print("control step request", request)
+    print("step request", request)
     cookie = request.headers.get('cookie', None)
     if cookie is None:
         # Handle the case where the cookie is not present
@@ -247,7 +216,6 @@ def step(novel_type, description, language, short_memory, long_memory, save_stor
     # short memory, long memory, current written paragraphs, 3 next instructions
     return writer.output['output_memory'], long_memory, current_paras + '\n\n' + writer.output['input_paragraph'], human.output['output_instruction'], *writer.output['output_instruction']
 
-
 def controled_step(novel_type, description, language, short_memory, save_story, long_memory, selected_instruction, current_paras, request: gr.Request, ):
     out_file = None
     if save_story == "Yes" or save_story == "是":
@@ -256,7 +224,7 @@ def controled_step(novel_type, description, language, short_memory, save_story, 
     if current_paras == "":
         return "", "", "", "", "", ""
     global _CACHE
-    print("control step request", request)
+    # print("control step request", request.headers)
     cookie = request.headers.get('cookie', None)
     if cookie is None:
         # Handle the case where the cookie is not present
@@ -265,6 +233,7 @@ def controled_step(novel_type, description, language, short_memory, save_story, 
         cookie = request.headers['cookie']
         cookie = cookie.split('; _gat_gtag')[0]
     cache = _CACHE[cookie]
+    # print("cache", cache)
 
     if "writer" not in cache:
         start_input_to_human = cache["start_input_to_human"]
@@ -296,10 +265,10 @@ def controled_step(novel_type, description, language, short_memory, save_story, 
     # short memory, long memory, current written paragraphs, 3 next instructions
     return writer.output['output_memory'], long_memory, current_paras + '\n\n' + writer.output['input_paragraph'], selected_instruction, *writer.output['output_instruction']
 
-
 # SelectData is a subclass of EventData
 def on_select(instruction1, instruction2, instruction3, evt: gr.SelectData):
     selected_plan = int(evt.value.replace("情节发展 ", ""))
+    # selected_plan = int(evt.value.replace("Instruction ", ""))
     selected_plan = [instruction1, instruction2, instruction3][selected_plan-1]
     return selected_plan
 

@@ -41,19 +41,26 @@ def get_init(init_text=None,text=None,language=None,response_file=None):
     init_text: if the title, outline, and the first 3 paragraphs are given in a .txt file, directly read
     text: if no .txt file is given, use init prompt to generate
     """
-    if not init_text:
-        response = get_api_response(text, language)
-        print(response)
-
-        if response_file:
-            with open(response_file, 'a', encoding='utf-8') as f:
+    response = get_api_response(text, language)
+    if init_text:
+        response = init_text + response
+    
+    if response_file:
+            with open(f"storage/{response_file}", 'a', encoding='utf-8') as f:
                 f.write(f"Init output here:\n{response}\n\n")
-    else:
-        # with open(init_text,'r',encoding='utf-8') as f:
-        #     response = f.read()
-        # f.close()
-        response = init_text + get_api_response(text, language)
-        print(response)
+    # if not init_text:
+    #     response = get_api_response(text, language)
+    #     print(response)
+
+    #     if response_file:
+    #         with open(f"storage/{response_file}", 'a', encoding='utf-8') as f:
+    #             f.write(f"Init output here:\n{response}\n\n")
+    # else:
+    #     # with open(init_text,'r',encoding='utf-8') as f:
+    #     #     response = f.read()
+    #     # f.close()
+    #     response = init_text + get_api_response(text, language)
+    #     print(response)
     paragraphs = {
         "Title":"",
         "Outline":"",
@@ -85,7 +92,6 @@ def get_init(init_text=None,text=None,language=None,response_file=None):
             break
     if paragraphs['Outline'] == '':
         paragraphs['Outline'] = get_content_between_a_b('Outline:','Paragraph',response)
-
 
     return paragraphs
 

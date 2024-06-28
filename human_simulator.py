@@ -16,8 +16,9 @@ class Human:
 
     def generate_next_paragraph(self):
         previous_paragraph = " ".join(self.input["input_paragraph"])
+        # print("call once")
         prompt = f"""
-            Now imagine you are a novelist writing a {self.language} novel with the help of ChatGPT. You will be given a previously written paragraph (wrote by you), and a paragraph written by your ChatGPT assistant, a summary of the main storyline maintained by your ChatGPT assistant, and a plan of what to write next proposed by your ChatGPT assistant.
+    Now imagine you are a novelist writing a {self.language} novel with the help of ChatGPT. You will be given a previously written paragraph (wrote by you), and a paragraph written by your ChatGPT assistant, a summary of the main storyline maintained by your ChatGPT assistant, and a plan of what to write next proposed by your ChatGPT assistant.
     Previous paragraph: <{previous_paragraph}>
     I need you to write the next one prargaph in 2 sentences and only return the senteces without extra format.
 """
@@ -147,15 +148,15 @@ class Human:
     def step(self):
 
         prompt = self.prepare_input()
-
-        print(prompt+'\n'+'\n')
-
+        # print(prompt+'\n'+'\n')
         response = get_api_response(prompt, self.language)
-        print(f"check the output from openai {response}")
+        # print(f"check the output from openai {response}")
         self.output = self.parse_output(response)
+
         while self.output == None:
             response = get_api_response(prompt, self.language)
             self.output = self.parse_output(response)
+
         if self.response_file:
-            with open(self.response_file, 'a', encoding='utf-8') as f:
+            with open(f"storage/{self.response_file}", 'a', encoding='utf-8') as f:
                 f.write(f"Human's output here:\n{response}\n\n")
