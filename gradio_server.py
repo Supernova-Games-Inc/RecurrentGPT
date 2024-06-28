@@ -7,7 +7,6 @@ from utils import get_init, parse_instructions
 from starlette.requests import Request
 import re
 
-
 _CACHE = {}
 
 p1 = ""
@@ -83,10 +82,10 @@ Make sure to be precise and follow the output format strictly. Do not exceed the
 
 """
 
-def init(novel_type, description, language, written_paras, save_story, request: gr.Request):
-    out_file = None
-    if save_story == "Yes" or save_story == "是":
-        out_file = f"{novel_type}_{description}_{language}.txt"
+def init(novel_type, description, language, written_paras, request: gr.Request):
+    # out_file = None
+    # if save_story == "Yes" or save_story == "是":
+    #     out_file = f"{novel_type}_{description}_{language}.txt"
 
     cookie = request.headers.get('cookie', None)
     if cookie is None:
@@ -101,7 +100,7 @@ def init(novel_type, description, language, written_paras, save_story, request: 
 
     global _CACHE
     init_paragraphs = "" 
-    init_paragraphs = get_init(text=init_prompt(novel_type, description, language, written_paras),response_file=out_file)
+    init_paragraphs = get_init(text=init_prompt(novel_type, description, language, written_paras))
     
     start_input_to_human = {
         'output_paragraph': "",
@@ -124,10 +123,10 @@ Paragraphs:
     # print("inital", written_paras)
     return start_input_to_human['output_memory'], long_memory, written_paras, init_paragraphs['Instruction 1'], init_paragraphs['Instruction 2'], init_paragraphs['Instruction 3']
 
-def init_continue(novel_type, description, language, title, outline, p1, p2, p3, written_paras, save_story, request: gr.Request):
-    out_file = None
-    if save_story == "Yes" or save_story == "是":
-        out_file = f"{novel_type}_{description}_{language}.txt"
+def init_continue(novel_type, description, language, title, outline, p1, p2, p3, written_paras, request: gr.Request):
+    # out_file = None
+    # if save_story == "Yes" or save_story == "是":
+    #     out_file = f"{novel_type}_{description}_{language}.txt"
 
     cookie = request.headers.get('cookie', None)
     if cookie is None:
@@ -143,7 +142,7 @@ def init_continue(novel_type, description, language, title, outline, p1, p2, p3,
     init_paragraphs = ""
     formated_story_start = formated_user_story(title, outline, p1, p2, p3)
 
-    init_paragraphs = get_init(init_text=formated_story_start, text=init_prompt_continue(novel_type, description, language, formated_story_start),response_file=out_file)
+    init_paragraphs = get_init(init_text=formated_story_start, text=init_prompt_continue(novel_type, description, language, formated_story_start))
 
     start_input_to_human = {
         'output_paragraph': "",
@@ -166,10 +165,10 @@ Paragraphs:
     # print("inital", written_paras)
     return start_input_to_human['output_memory'], long_memory, written_paras, init_paragraphs['Instruction 1'], init_paragraphs['Instruction 2'], init_paragraphs['Instruction 3']
 
-def step(novel_type, description, language, short_memory, long_memory, save_story, instruction1, instruction2, instruction3, current_paras, request: gr.Request,):
-    out_file = None
-    if save_story == "Yes":
-        out_file = f"{novel_type}_{description}_{language}.txt"
+def step(novel_type, description, language, short_memory, long_memory, instruction1, instruction2, instruction3, current_paras, request: gr.Request,):
+    # out_file = None
+    # if save_story == "Yes":
+    #     out_file = f"{novel_type}_{description}_{language}.txt"
     
     if current_paras == "":
         return "", "", "", "", "", ""
@@ -190,14 +189,14 @@ def step(novel_type, description, language, short_memory, long_memory, save_stor
             instruction1, instruction2, instruction3]
         init_paragraphs = cache["init_paragraphs"]
         human = Human(input=start_input_to_human,
-                      memory=None, embedder=embedder, language=language, output_file=out_file)
+                      memory=None, embedder=embedder, language=language)
         human.step()
         start_short_memory = init_paragraphs['Summary']
         writer_start_input = human.output
 
         # Init writerGPT
         writer = RecurrentGPT(input=writer_start_input, short_memory=start_short_memory, long_memory=[
-            init_paragraphs['Paragraph 1'], init_paragraphs['Paragraph 2']], memory_index=None, embedder=embedder, language=language, output_file=out_file)
+            init_paragraphs['Paragraph 1'], init_paragraphs['Paragraph 2']], memory_index=None, embedder=embedder, language=language)
         cache["writer"] = writer
         cache["human"] = human
         writer.step()
@@ -218,10 +217,10 @@ def step(novel_type, description, language, short_memory, long_memory, save_stor
     # short memory, long memory, current written paragraphs, 3 next instructions
     return writer.output['output_memory'], long_memory, current_paras + '\n\n' + writer.output['input_paragraph'], human.output['output_instruction'], *writer.output['output_instruction']
 
-def controled_step(novel_type, description, language, short_memory, save_story, long_memory, selected_instruction, current_paras, request: gr.Request, ):
-    out_file = None
-    if save_story == "Yes" or save_story == "是":
-        out_file = f"{novel_type}_{description}_{language}.txt"
+def controled_step(novel_type, description, language, short_memory, long_memory, selected_instruction, current_paras, request: gr.Request, ):
+    # out_file = None
+    # if save_story == "Yes" or save_story == "是":
+    #     out_file = f"{novel_type}_{description}_{language}.txt"
     
     if current_paras == "":
         return "", "", "", "", "", ""
@@ -242,14 +241,14 @@ def controled_step(novel_type, description, language, short_memory, save_story, 
         start_input_to_human['output_instruction'] = selected_instruction
         init_paragraphs = cache["init_paragraphs"]
         human = Human(input=start_input_to_human,
-                      memory=None, embedder=embedder, language=language, output_file=out_file)
+                      memory=None, embedder=embedder, language=language)
         human.step()
         start_short_memory = init_paragraphs['Summary']
         writer_start_input = human.output
 
         # Init writerGPT
         writer = RecurrentGPT(input=writer_start_input, short_memory=start_short_memory, long_memory=[
-            init_paragraphs['Paragraph 1'], init_paragraphs['Paragraph 2'], init_paragraphs['Paragraph 3']], memory_index=None, embedder=embedder, language=language, output_file=out_file)
+            init_paragraphs['Paragraph 1'], init_paragraphs['Paragraph 2'], init_paragraphs['Paragraph 3']], memory_index=None, embedder=embedder, language=language)
         cache["writer"] = writer
         cache["human"] = human
         writer.step()
@@ -274,14 +273,14 @@ def on_select(instruction1, instruction2, instruction3, evt: gr.SelectData):
     selected_plan = [instruction1, instruction2, instruction3][selected_plan-1]
     return selected_plan
 
-def copy_content(novel_type,description,language,save_story,written_paras):
-    return novel_type,description,language,save_story,written_paras
+def copy_content(novel_type,description,language,written_paras):
+    return novel_type,description,language,written_paras
 
 # Function to paste content into Tab 2
 def paste_content(copied):
     title, outline, p1, p2, p3 = "", "", "", "", ""
     try:
-        sentences = copied[4].split("\n\n")
+        sentences = copied[3].split("\n\n")
         print("copy", sentences)
         title = sentences[0].split("Title: ")[1]
         outline = sentences[1].split("Outline: ")[1]
@@ -289,11 +288,23 @@ def paste_content(copied):
         p1 = sentences[3]
         p2 = sentences[4]
         p3 = sentences[5]
-        return copied[0], copied[1], copied[2], copied[3], title, outline, p1, p2, p3
+        return copied[0], copied[1], copied[2], title, outline, p1, p2, p3
     except Exception as e:
         print(f"An error occurred: {e}")
-        return copied[0], copied[1], copied[2], copied[3], title, outline, p1, p2, p3
+        return copied[0], copied[1], copied[2], title, outline, p1, p2, p3
+
+
+def create_text_file(novel_type, written_paras):
+    file_name = f"{novel_type}_example.txt"
          
+    content = f"""
+        Novel Type: {novel_type}
+        {written_paras}
+      """
+    
+    with open(file_name, "w") as file:
+        file.write(content)
+    return file_name     
 
 with gr.Blocks(title="RecurrentGPT", css="footer {visibility: hidden}", theme="default") as demo:
     copied_content = gr.State()
@@ -306,7 +317,11 @@ with gr.Blocks(title="RecurrentGPT", css="footer {visibility: hidden}", theme="d
                 description = gr.Textbox(label="主题")
                 # language = gr.Textbox(label="Language")
                 language = gr.Radio(choices=["English", "中文"], label="语言")
-                save_story = gr.Radio(choices=["是", "否"], label="保存故事")
+                # save_story = gr.Radio(choices=["是", "否"], label="保存故事")
+                with gr.Row():
+                    download_button = gr.Button("保存故事并下载")
+                    download_file = gr.File(value=None)
+
             with gr.Row():
                 gr.Examples(["科幻", "言情", "悬疑", "架空",
                         "历史", "恐怖", "搞笑", "传记"],
@@ -344,15 +359,17 @@ with gr.Blocks(title="RecurrentGPT", css="footer {visibility: hidden}", theme="d
 
         btn_step = gr.Button("下一步", elem_id="step_button")
 
-        btn_copy.click(fn=copy_content, inputs=[novel_type,description,language,save_story,written_paras], outputs=copied_content)
+        btn_copy.click(fn=copy_content, inputs=[novel_type,description,language,written_paras], outputs=copied_content)
 
 
-        btn_init.click(init, inputs=[novel_type, description, language, written_paras, save_story], outputs=[
+        btn_init.click(init, inputs=[novel_type, description, language, written_paras], outputs=[
             short_memory, long_memory, written_paras, instruction1, instruction2, instruction3])
-        btn_step.click(controled_step, inputs=[novel_type, description, language, save_story, short_memory, long_memory, selected_instruction, written_paras], outputs=[
+        btn_step.click(controled_step, inputs=[novel_type, description, language, short_memory, long_memory, selected_instruction, written_paras], outputs=[
             short_memory, long_memory, written_paras, last_step, instruction1, instruction2, instruction3])
         selected_plan.select(on_select, inputs=[
                              instruction1, instruction2, instruction3], outputs=[selected_instruction])
+        
+        download_button.click(create_text_file, inputs=[novel_type, written_paras], outputs=[download_file])
         
     
     # new tab
@@ -364,8 +381,11 @@ with gr.Blocks(title="RecurrentGPT", css="footer {visibility: hidden}", theme="d
                 description = gr.Textbox(label="主题")
                 # language = gr.Textbox(label="Language")
                 language = gr.Radio(choices=["English", "中文"], label="语言")
-                save_story = gr.Radio(choices=["是", "否"], label="保存故事")
+                # save_story = gr.Radio(choices=["是", "否"], label="保存故事")
                 # btn_paste = gr.Button("粘贴故事设定", elem_id="copy_button")
+                with gr.Row():
+                    download_button = gr.Button("保存故事并下载")
+                    download_file = gr.File(value=None)
             with gr.Row():
                 gr.Examples(["科幻", "言情", "悬疑", "架空",
                         "历史", "恐怖", "搞笑", "传记"],
@@ -411,14 +431,16 @@ with gr.Blocks(title="RecurrentGPT", css="footer {visibility: hidden}", theme="d
 
         btn_step = gr.Button("下一步", elem_id="step_button")
 
-        btn_paste.click(fn=paste_content, inputs=copied_content, outputs=[novel_type,description,language,save_story,title,outline,paragraph1,paragraph2,paragraph3])
+        btn_paste.click(fn=paste_content, inputs=copied_content, outputs=[novel_type,description,language,title,outline,paragraph1,paragraph2,paragraph3])
 
-        btn_init.click(init_continue, inputs=[novel_type, description, language, title, outline, paragraph1, paragraph2, paragraph3, written_paras, save_story], outputs=[
+        btn_init.click(init_continue, inputs=[novel_type, description, language, title, outline, paragraph1, paragraph2, paragraph3, written_paras], outputs=[
             short_memory, long_memory, written_paras, instruction1, instruction2, instruction3])
-        btn_step.click(controled_step, inputs=[novel_type, description, language, save_story, short_memory, long_memory, selected_instruction, written_paras], outputs=[
+        btn_step.click(controled_step, inputs=[novel_type, description, language, short_memory, long_memory, selected_instruction, written_paras], outputs=[
             short_memory, long_memory, written_paras, last_step, instruction1, instruction2, instruction3])
         selected_plan.select(on_select, inputs=[
                              instruction1, instruction2, instruction3], outputs=[selected_instruction])
+        
+        download_button.click(create_text_file, inputs=[novel_type, written_paras], outputs=[download_file])
 
 
     demo.queue(max_size=20)

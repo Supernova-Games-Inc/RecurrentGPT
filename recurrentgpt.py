@@ -132,8 +132,10 @@ class RecurrentGPT:
             with open(f"storage/{self.response_file}", 'a', encoding='utf-8') as f:
                 f.write(f"Writer's output here:\n{response}\n\n")
 
-        seperate = self.input["output_paragraph"].split("\n\n")
-        for each in seperate:
-            self.long_memory.append(each)
+        # seperate = self.input["output_paragraph"].split("\n\n")
+        # for each in seperate:
+        #     self.long_memory.append(each)
+
+        self.long_memory.append(self.input["output_paragraph"].replace("\n\n", " "))
         self.memory_index = self.embedder.encode(
             self.long_memory, convert_to_tensor=True)
