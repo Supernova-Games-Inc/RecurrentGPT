@@ -10,6 +10,8 @@ import re
 
 _CACHE = {}
 
+p1 = ""
+
 # Build the semantic search model
 embedder = SentenceTransformer('multi-qa-mpnet-base-cos-v1')
 def formated_user_story(title, outline, p1, p2, p3):
@@ -272,7 +274,29 @@ def on_select(instruction1, instruction2, instruction3, evt: gr.SelectData):
     selected_plan = [instruction1, instruction2, instruction3][selected_plan-1]
     return selected_plan
 
+def copy_content(novel_type,description,language,save_story,written_paras):
+    return novel_type,description,language,save_story,written_paras
+
+# Function to paste content into Tab 2
+def paste_content(copied):
+    title, outline, p1, p2, p3 = "", "", "", "", ""
+    try:
+        sentences = copied[4].split("\n\n")
+        print("copy", sentences)
+        title = sentences[0].split("Title: ")[1]
+        outline = sentences[1].split("Outline: ")[1]
+        # paragraph = sentences[2] # paragaph:
+        p1 = sentences[3]
+        p2 = sentences[4]
+        p3 = sentences[5]
+        return copied[0], copied[1], copied[2], copied[3], title, outline, p1, p2, p3
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return copied[0], copied[1], copied[2], copied[3], title, outline, p1, p2, p3
+         
+
 with gr.Blocks(title="RecurrentGPT", css="footer {visibility: hidden}", theme="default") as demo:
+    copied_content = gr.State()
     # new tab
     with gr.Tab("选择性故事生成"):
         with gr.Column():
@@ -283,13 +307,17 @@ with gr.Blocks(title="RecurrentGPT", css="footer {visibility: hidden}", theme="d
                 # language = gr.Textbox(label="Language")
                 language = gr.Radio(choices=["English", "中文"], label="语言")
                 save_story = gr.Radio(choices=["是", "否"], label="保存故事")
-            gr.Examples(["科幻", "言情", "悬疑", "架空",
+            with gr.Row():
+                gr.Examples(["科幻", "言情", "悬疑", "架空",
                         "历史", "恐怖", "搞笑", "传记"],
                         inputs=[novel_type], elem_id="example_selector")
+                btn_copy = gr.Button("拷贝故事设定", elem_id="copy_button")
+        
             btn_init = gr.Button(
                 "生成故事", elem_id="init_button")
             written_paras = gr.Textbox(
                 label="故事主体段落", lines=21)
+            
                 
 
         with gr.Column():
@@ -315,15 +343,20 @@ with gr.Blocks(title="RecurrentGPT", css="footer {visibility: hidden}", theme="d
                                 label="选择的情节发展（可修改）", max_lines=5, lines=5)
 
         btn_step = gr.Button("下一步", elem_id="step_button")
+
+        btn_copy.click(fn=copy_content, inputs=[novel_type,description,language,save_story,written_paras], outputs=copied_content)
+
+
         btn_init.click(init, inputs=[novel_type, description, language, written_paras, save_story], outputs=[
             short_memory, long_memory, written_paras, instruction1, instruction2, instruction3])
         btn_step.click(controled_step, inputs=[novel_type, description, language, save_story, short_memory, long_memory, selected_instruction, written_paras], outputs=[
             short_memory, long_memory, written_paras, last_step, instruction1, instruction2, instruction3])
         selected_plan.select(on_select, inputs=[
                              instruction1, instruction2, instruction3], outputs=[selected_instruction])
+        
     
     # new tab
-    with gr.Tab("故事续写"):
+    with gr.Tab("初始化故事"):
         with gr.Column():
             with gr.Row():
                 novel_type = gr.Textbox(
@@ -332,9 +365,13 @@ with gr.Blocks(title="RecurrentGPT", css="footer {visibility: hidden}", theme="d
                 # language = gr.Textbox(label="Language")
                 language = gr.Radio(choices=["English", "中文"], label="语言")
                 save_story = gr.Radio(choices=["是", "否"], label="保存故事")
-            gr.Examples(["科幻", "言情", "悬疑", "架空",
+                # btn_paste = gr.Button("粘贴故事设定", elem_id="copy_button")
+            with gr.Row():
+                gr.Examples(["科幻", "言情", "悬疑", "架空",
                         "历史", "恐怖", "搞笑", "传记"],
                         inputs=[novel_type], elem_id="example_selector")
+                btn_paste = gr.Button("粘贴故事设定", elem_id="copy_button")
+            
             with gr.Row():
                 title = gr.Textbox(
                     label="小说标题", placeholder="例如: 大喵喵厨师探险")
@@ -342,12 +379,12 @@ with gr.Blocks(title="RecurrentGPT", css="footer {visibility: hidden}", theme="d
             paragraph1 = gr.Textbox(label="段落一", placeholder="段落一 内容 (不超过五句话)")
             paragraph2 = gr.Textbox(label="段落二", placeholder="段落二 内容 (不超过五句话)")
             paragraph3 = gr.Textbox(label="段落三", placeholder="段落三 内容 (不超过五句话)")
-            save_story = gr.Radio(choices=["是", "否"], label="保存故事")
 
             btn_init = gr.Button(
-                "续写故事", elem_id="init_button")
+                "初始化故事", elem_id="init_button")
             written_paras = gr.Textbox(
                 label="故事主体段落", lines=21)
+            
                 
 
         with gr.Column():
@@ -373,6 +410,9 @@ with gr.Blocks(title="RecurrentGPT", css="footer {visibility: hidden}", theme="d
                                 label="选择的情节发展（可修改）", max_lines=5, lines=5)
 
         btn_step = gr.Button("下一步", elem_id="step_button")
+
+        btn_paste.click(fn=paste_content, inputs=copied_content, outputs=[novel_type,description,language,save_story,title,outline,paragraph1,paragraph2,paragraph3])
+
         btn_init.click(init_continue, inputs=[novel_type, description, language, title, outline, paragraph1, paragraph2, paragraph3, written_paras, save_story], outputs=[
             short_memory, long_memory, written_paras, instruction1, instruction2, instruction3])
         btn_step.click(controled_step, inputs=[novel_type, description, language, save_story, short_memory, long_memory, selected_instruction, written_paras], outputs=[
