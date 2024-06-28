@@ -295,16 +295,18 @@ def paste_content(copied):
 
 
 def create_text_file(novel_type, written_paras):
-    file_name = f"{novel_type}_example.txt"
+    file_name = f"{novel_type}_story.txt"
          
     content = f"""
-        Novel Type: {novel_type}
-        {written_paras}
-      """
+Novel Type: {novel_type}
+
+{written_paras}"""
     
     with open(file_name, "w") as file:
         file.write(content)
-    return file_name     
+    # gr.update(value=file_path, visible=True)
+    # return file_name  
+    return gr.update(value=file_name, visible=True)
 
 with gr.Blocks(title="RecurrentGPT", css="footer {visibility: hidden}", theme="default") as demo:
     copied_content = gr.State()
@@ -320,7 +322,8 @@ with gr.Blocks(title="RecurrentGPT", css="footer {visibility: hidden}", theme="d
                 # save_story = gr.Radio(choices=["是", "否"], label="保存故事")
                 with gr.Row():
                     download_button = gr.Button("保存故事并下载")
-                    download_file = gr.File(value=None)
+                    download_file = gr.File(value=None, visible=False)
+                
 
             with gr.Row():
                 gr.Examples(["科幻", "言情", "悬疑", "架空",
@@ -332,8 +335,7 @@ with gr.Blocks(title="RecurrentGPT", css="footer {visibility: hidden}", theme="d
                 "生成故事", elem_id="init_button")
             written_paras = gr.Textbox(
                 label="故事主体段落", lines=21)
-            
-                
+       
 
         with gr.Column():
             gr.Markdown("### 记忆模块")
@@ -373,7 +375,7 @@ with gr.Blocks(title="RecurrentGPT", css="footer {visibility: hidden}", theme="d
         
     
     # new tab
-    with gr.Tab("初始化故事"):
+    with gr.Tab("初始化故事续写"):
         with gr.Column():
             with gr.Row():
                 novel_type = gr.Textbox(
@@ -385,7 +387,7 @@ with gr.Blocks(title="RecurrentGPT", css="footer {visibility: hidden}", theme="d
                 # btn_paste = gr.Button("粘贴故事设定", elem_id="copy_button")
                 with gr.Row():
                     download_button = gr.Button("保存故事并下载")
-                    download_file = gr.File(value=None)
+                    download_file = gr.File(value=None, visible=False)
             with gr.Row():
                 gr.Examples(["科幻", "言情", "悬疑", "架空",
                         "历史", "恐怖", "搞笑", "传记"],
@@ -401,7 +403,7 @@ with gr.Blocks(title="RecurrentGPT", css="footer {visibility: hidden}", theme="d
             paragraph3 = gr.Textbox(label="段落三", placeholder="段落三 内容 (不超过五句话)")
 
             btn_init = gr.Button(
-                "初始化故事", elem_id="init_button")
+                "初始化故事续写", elem_id="init_button")
             written_paras = gr.Textbox(
                 label="故事主体段落", lines=21)
             
