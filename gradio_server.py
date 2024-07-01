@@ -217,11 +217,10 @@ def step(novel_type, description, language, short_memory, long_memory, instructi
     # short memory, long memory, current written paragraphs, 3 next instructions
     return writer.output['output_memory'], long_memory, current_paras + '\n\n' + writer.output['input_paragraph'], human.output['output_instruction'], *writer.output['output_instruction']
 
-def controled_step(novel_type, description, language, short_memory, long_memory, selected_instruction, current_paras, request: gr.Request, ):
+def controled_step(language, short_memory, long_memory, selected_instruction, current_paras, request: gr.Request, ):
     # out_file = None
     # if save_story == "Yes" or save_story == "是":
-    #     out_file = f"{novel_type}_{description}_{language}.txt"
-    
+    #     out_file = f"{novel_type}_{description}_{language}.txt"   
     if current_paras == "":
         return "", "", "", "", "", ""
     global _CACHE
@@ -264,7 +263,8 @@ def controled_step(novel_type, description, language, short_memory, long_memory,
         writer.step()
     long_memory = parse_instructions(writer.long_memory)
     # short memory, long memory, current written paragraphs, 3 next instructions
-    return writer.output['output_memory'], long_memory, current_paras + '\n\n' + writer.output['input_paragraph'], selected_instruction, *writer.output['output_instruction']
+    selected_plan, btn_step,
+    return writer.output['output_memory'], long_memory, current_paras + '\n\n' + writer.output['input_paragraph'], gr.update(value=None), gr.update(interactive=False), selected_instruction, "", *writer.output['output_instruction']
 
 # SelectData is a subclass of EventData
 def on_select(instruction1, instruction2, instruction3, evt: gr.SelectData):
@@ -294,6 +294,9 @@ def paste_content(copied):
         return copied[0], copied[1], copied[2], title, outline, p1, p2, p3
 
 
+def enable_button(value):
+    return gr.update(interactive=bool(value))
+
 def create_text_file(novel_type, written_paras):
     file_name = f"{novel_type}_story.txt"
          
@@ -317,9 +320,7 @@ with gr.Blocks(title="RecurrentGPT", css="footer {visibility: hidden}", theme="d
                 novel_type = gr.Textbox(
                     label="小说类型", placeholder="例如: 幻想架空")
                 description = gr.Textbox(label="主题")
-                # language = gr.Textbox(label="Language")
                 language = gr.Radio(choices=["English", "中文"], label="语言")
-                # save_story = gr.Radio(choices=["是", "否"], label="保存故事")
                 with gr.Row():
                     download_button = gr.Button("保存故事并下载")
                     download_file = gr.File(value=None, visible=False)
@@ -329,10 +330,10 @@ with gr.Blocks(title="RecurrentGPT", css="footer {visibility: hidden}", theme="d
                 gr.Examples(["科幻", "言情", "悬疑", "架空",
                         "历史", "恐怖", "搞笑", "传记"],
                         inputs=[novel_type], elem_id="example_selector")
-                btn_copy = gr.Button("拷贝故事设定", elem_id="copy_button")
+                btn_copy = gr.Button("拷贝 初始化故事设定", elem_id="copy_button")
         
             btn_init = gr.Button(
-                "生成故事", elem_id="init_button")
+                "初始化故事", elem_id="init_button")
             written_paras = gr.Textbox(
                 label="故事主体段落", lines=21)
        
@@ -359,15 +360,14 @@ with gr.Blocks(title="RecurrentGPT", css="footer {visibility: hidden}", theme="d
                             selected_instruction = gr.Textbox(
                                 label="选择的情节发展（可修改）", max_lines=5, lines=5)
 
-        btn_step = gr.Button("下一步", elem_id="step_button")
+        btn_step = gr.Button("下一步", elem_id="step_button", interactive=False)
+        selected_plan.change(fn=enable_button, inputs=selected_plan, outputs=btn_step)
 
         btn_copy.click(fn=copy_content, inputs=[novel_type,description,language,written_paras], outputs=copied_content)
-
-
         btn_init.click(init, inputs=[novel_type, description, language, written_paras], outputs=[
             short_memory, long_memory, written_paras, instruction1, instruction2, instruction3])
-        btn_step.click(controled_step, inputs=[novel_type, description, language, short_memory, long_memory, selected_instruction, written_paras], outputs=[
-            short_memory, long_memory, written_paras, last_step, instruction1, instruction2, instruction3])
+        btn_step.click(controled_step, inputs=[language, short_memory, long_memory, selected_instruction, written_paras], outputs=[
+            short_memory, long_memory, written_paras, selected_plan, btn_step, last_step, selected_instruction, instruction1, instruction2, instruction3])
         selected_plan.select(on_select, inputs=[
                              instruction1, instruction2, instruction3], outputs=[selected_instruction])
         
@@ -381,10 +381,7 @@ with gr.Blocks(title="RecurrentGPT", css="footer {visibility: hidden}", theme="d
                 novel_type = gr.Textbox(
                     label="小说类型", placeholder="例如: 幻想架空")
                 description = gr.Textbox(label="主题")
-                # language = gr.Textbox(label="Language")
                 language = gr.Radio(choices=["English", "中文"], label="语言")
-                # save_story = gr.Radio(choices=["是", "否"], label="保存故事")
-                # btn_paste = gr.Button("粘贴故事设定", elem_id="copy_button")
                 with gr.Row():
                     download_button = gr.Button("保存故事并下载")
                     download_file = gr.File(value=None, visible=False)
@@ -392,7 +389,7 @@ with gr.Blocks(title="RecurrentGPT", css="footer {visibility: hidden}", theme="d
                 gr.Examples(["科幻", "言情", "悬疑", "架空",
                         "历史", "恐怖", "搞笑", "传记"],
                         inputs=[novel_type], elem_id="example_selector")
-                btn_paste = gr.Button("粘贴故事设定", elem_id="copy_button")
+                btn_paste = gr.Button("粘贴 故事设定", elem_id="copy_button")
             
             with gr.Row():
                 title = gr.Textbox(
@@ -431,14 +428,14 @@ with gr.Blocks(title="RecurrentGPT", css="footer {visibility: hidden}", theme="d
                             selected_instruction = gr.Textbox(
                                 label="选择的情节发展（可修改）", max_lines=5, lines=5)
 
-        btn_step = gr.Button("下一步", elem_id="step_button")
+        btn_step = gr.Button("下一步", elem_id="step_button", interactive=False)
+        selected_plan.change(fn=enable_button, inputs=selected_plan, outputs=btn_step)
 
-        btn_paste.click(fn=paste_content, inputs=copied_content, outputs=[novel_type,description,language,title,outline,paragraph1,paragraph2,paragraph3])
-
+        btn_paste.click(fn=paste_content, inputs=copied_content, outputs=[novel_type,description,language,title,outline,paragraph1,paragraph2,paragraph3])    
         btn_init.click(init_continue, inputs=[novel_type, description, language, title, outline, paragraph1, paragraph2, paragraph3, written_paras], outputs=[
             short_memory, long_memory, written_paras, instruction1, instruction2, instruction3])
-        btn_step.click(controled_step, inputs=[novel_type, description, language, short_memory, long_memory, selected_instruction, written_paras], outputs=[
-            short_memory, long_memory, written_paras, last_step, instruction1, instruction2, instruction3])
+        btn_step.click(controled_step, inputs=[language, short_memory, long_memory, selected_instruction, written_paras], outputs=[
+            short_memory, long_memory, written_paras, selected_plan, btn_step, last_step, selected_instruction, instruction1, instruction2, instruction3])
         selected_plan.select(on_select, inputs=[
                              instruction1, instruction2, instruction3], outputs=[selected_instruction])
         
