@@ -10,6 +10,7 @@ import re
 _CACHE = {}
 
 p1 = ""
+chinese_num_dict = {"一": 1, "二": 2, "三": 3,}
 
 # Build the semantic search model
 embedder = SentenceTransformer('multi-qa-mpnet-base-cos-v1')
@@ -63,6 +64,7 @@ def init_prompt_continue(novel_type, description, language, formated_user_story)
         description = "about " + description
     if language != "":
         description += f" in {language} language"
+
     return f"""
 Here is the user provided content:
 {formated_user_story}
@@ -268,7 +270,7 @@ def controled_step(language, short_memory, long_memory, selected_instruction, cu
 
 # SelectData is a subclass of EventData
 def on_select(instruction1, instruction2, instruction3, evt: gr.SelectData):
-    selected_plan = int(evt.value.replace("情节发展 ", ""))
+    selected_plan = int(chinese_num_dict[evt.value.replace("情节发展 ", "")])
     # selected_plan = int(evt.value.replace("Instruction ", ""))
     selected_plan = [instruction1, instruction2, instruction3][selected_plan-1]
     return selected_plan
@@ -297,8 +299,9 @@ def paste_content(copied):
 def enable_button(value):
     return gr.update(interactive=bool(value))
 
-def create_text_file(novel_type, written_paras):
-    file_name = f"{novel_type}_story.txt"
+def create_text_file(novel_type, description, language, written_paras):
+    novel_name = novel_type + description + language
+    file_name = f"{novel_name}.txt"
          
     content = f"""
 Novel Type: {novel_type}
@@ -307,8 +310,6 @@ Novel Type: {novel_type}
     
     with open(file_name, "w") as file:
         file.write(content)
-    # gr.update(value=file_path, visible=True)
-    # return file_name  
     return gr.update(value=file_name, visible=True)
 
 with gr.Blocks(title="RecurrentGPT", css="footer {visibility: hidden}", theme="default") as demo:
@@ -319,8 +320,8 @@ with gr.Blocks(title="RecurrentGPT", css="footer {visibility: hidden}", theme="d
             with gr.Row():
                 novel_type = gr.Textbox(
                     label="小说类型", placeholder="例如: 幻想架空")
-                description = gr.Textbox(label="主题")
-                language = gr.Radio(choices=["English", "中文"], label="语言")
+                description = gr.Textbox(label="主题", placeholder="例如: 全球电竞冠军穿越回古代种田")
+                language = gr.Radio(choices=[ "中文", "English"], value="中文", label="语言")
                 with gr.Row():
                     download_button = gr.Button("保存故事并下载")
                     download_file = gr.File(value=None, visible=False)
@@ -330,7 +331,7 @@ with gr.Blocks(title="RecurrentGPT", css="footer {visibility: hidden}", theme="d
                 gr.Examples(["科幻", "言情", "悬疑", "架空",
                         "历史", "恐怖", "搞笑", "传记"],
                         inputs=[novel_type], elem_id="example_selector")
-                btn_copy = gr.Button("拷贝 初始化故事设定", elem_id="copy_button")
+                btn_copy = gr.Button("拷贝 故事设定", elem_id="copy_button")
         
             btn_init = gr.Button(
                 "初始化故事", elem_id="init_button")
@@ -341,21 +342,21 @@ with gr.Blocks(title="RecurrentGPT", css="footer {visibility: hidden}", theme="d
         with gr.Column():
             gr.Markdown("### 记忆模块")
             short_memory = gr.Textbox(
-                label="短期记忆", lines=3)
+                label="短期记忆", lines=3, interactive=False)
             long_memory = gr.Textbox(
-                label="长期记忆", lines=6)
+                label="长期记忆", lines=6, interactive=False)
             gr.Markdown("### 故事情节发展模块")
             instruction1 = gr.Textbox(
-                label="情节发展 1 (可修改)", lines=4)
+                label="情节发展 一", lines=4, interactive=False)
             instruction2 = gr.Textbox(
-                label="情节发展 2 (可修改)", lines=4)
+                label="情节发展 二", lines=4, interactive=False)
             instruction3 = gr.Textbox(
-                label="情节发展 3 (可修改)", lines=4)
+                label="情节发展 三", lines=4, interactive=False)
             last_step = gr.Textbox(
                 label="上一个选择的情节", lines=2)
         with gr.Column():
             with gr.Column(scale=1, min_width=100):
-                            selected_plan = gr.Radio(["情节发展 1", "情节发展  2", "情节发展 3"], label="选择发展")
+                            selected_plan = gr.Radio(["情节发展 一", "情节发展 二", "情节发展 三"], label="选择 情节发展")
             with gr.Column(scale=3, min_width=300):
                             selected_instruction = gr.Textbox(
                                 label="选择的情节发展（可修改）", max_lines=5, lines=5)
@@ -371,7 +372,7 @@ with gr.Blocks(title="RecurrentGPT", css="footer {visibility: hidden}", theme="d
         selected_plan.select(on_select, inputs=[
                              instruction1, instruction2, instruction3], outputs=[selected_instruction])
         
-        download_button.click(create_text_file, inputs=[novel_type, written_paras], outputs=[download_file])
+        download_button.click(create_text_file, inputs=[novel_type, description, language, written_paras], outputs=[download_file])
         
     
     # new tab
@@ -380,8 +381,8 @@ with gr.Blocks(title="RecurrentGPT", css="footer {visibility: hidden}", theme="d
             with gr.Row():
                 novel_type = gr.Textbox(
                     label="小说类型", placeholder="例如: 幻想架空")
-                description = gr.Textbox(label="主题")
-                language = gr.Radio(choices=["English", "中文"], label="语言")
+                description = gr.Textbox(label="主题", placeholder="例如: 全球电竞冠军穿越回古代种田")
+                language = gr.Radio(choices=[ "中文", "English"], value="中文", label="语言")
                 with gr.Row():
                     download_button = gr.Button("保存故事并下载")
                     download_file = gr.File(value=None, visible=False)
@@ -402,28 +403,28 @@ with gr.Blocks(title="RecurrentGPT", css="footer {visibility: hidden}", theme="d
             btn_init = gr.Button(
                 "初始化故事续写", elem_id="init_button")
             written_paras = gr.Textbox(
-                label="故事主体段落", lines=21)
+                label="故事主体段落", lines=21, interactive=False)
             
                 
 
         with gr.Column():
             gr.Markdown("### 记忆模块")
             short_memory = gr.Textbox(
-                label="短期记忆", lines=3)
+                label="短期记忆", lines=3, interactive=False)
             long_memory = gr.Textbox(
-                label="长期记忆", lines=6)
+                label="长期记忆", lines=6, interactive=False)
             gr.Markdown("### 故事情节发展模块")
             instruction1 = gr.Textbox(
-                label="情节发展 1 (可修改)", lines=4)
+                label="情节发展 一", lines=4, interactive=False)
             instruction2 = gr.Textbox(
-                label="情节发展 2 (可修改)", lines=4)
+                label="情节发展 二", lines=4, interactive=False)
             instruction3 = gr.Textbox(
-                label="情节发展 3 (可修改)", lines=4)
+                label="情节发展 三", lines=4, interactive=False)
             last_step = gr.Textbox(
                 label="上一个选择的情节", lines=2)
         with gr.Column():
             with gr.Column(scale=1, min_width=100):
-                            selected_plan = gr.Radio(["情节发展 1", "情节发展  2", "情节发展 3"], label="选择发展")
+                            selected_plan = gr.Radio(["情节发展 一", "情节发展 二", "情节发展 三"], label="选择 情节发展")
             with gr.Column(scale=3, min_width=300):
                             selected_instruction = gr.Textbox(
                                 label="选择的情节发展（可修改）", max_lines=5, lines=5)
@@ -439,8 +440,8 @@ with gr.Blocks(title="RecurrentGPT", css="footer {visibility: hidden}", theme="d
         selected_plan.select(on_select, inputs=[
                              instruction1, instruction2, instruction3], outputs=[selected_instruction])
         
-        download_button.click(create_text_file, inputs=[novel_type, written_paras], outputs=[download_file])
-
+        download_button.click(create_text_file, inputs=[novel_type, description, language, written_paras], outputs=[download_file])
+        
 
     demo.queue(max_size=20)
     demo.launch(max_threads=1, inbrowser=True, share=True)
