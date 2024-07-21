@@ -14,9 +14,21 @@ class Human:
         self.language = language
         self.response_file = output_file
 
+    def generate_next_paragraph(self):
+        previous_paragraph = " ".join(self.input["input_paragraph"])
+        # print("call once")
+        prompt = f"""
+    Now imagine you are a novelist writing a {self.language} novel with the help of ChatGPT. You will be given a previously written paragraph (wrote by you), and a paragraph written by your ChatGPT assistant, a summary of the main storyline maintained by your ChatGPT assistant, and a plan of what to write next proposed by your ChatGPT assistant.
+    Previous paragraph: <{previous_paragraph}>
+    I need you to write the next one prargaph in 2 sentences and only return the senteces without extra format.
+"""
+        return get_api_response(prompt, self.language)
+
 
     def prepare_input(self):
         previous_paragraph = self.input["input_paragraph"]
+        if self.input["output_paragraph"] == "":
+            self.input["output_paragraph"] = self.generate_next_paragraph()
         writer_new_paragraph = self.input["output_paragraph"]
         memory = self.input["output_memory"]
         user_edited_plan = self.input["output_instruction"]
@@ -62,51 +74,51 @@ class Human:
         return plan
 
 
-    def select_plan(self):
+    # def select_plan(self):
         
-        previous_paragraph = self.input["input_paragraph"]
-        writer_new_paragraph = self.input["output_paragraph"]
-        memory = self.input["output_memory"]
-        previous_plans = self.input["output_instruction"]
-        prompt = f"""
-    Now imagine you are a helpful assistant that help a novelist with decision making. You will be given a previously written paragraph and a paragraph written by a ChatGPT writing assistant, a summary of the main storyline maintained by the ChatGPT assistant, and 3 different possible plans of what to write next.
-    I need you to:
-    Select the most interesting and suitable plan proposed by the ChatGPT assistant.
+    #     previous_paragraph = self.input["input_paragraph"]
+    #     writer_new_paragraph = self.input["output_paragraph"]
+    #     memory = self.input["output_memory"]
+    #     previous_plans = self.input["output_instruction"]
+    #     prompt = f"""
+    # Now imagine you are a helpful assistant that help a novelist with decision making. You will be given a previously written paragraph and a paragraph written by a ChatGPT writing assistant, a summary of the main storyline maintained by the ChatGPT assistant, and 3 different possible plans of what to write next.
+    # I need you to:
+    # Select the most interesting and suitable plan proposed by the ChatGPT assistant.
 
-    Previously written paragraph:  
-    {previous_paragraph}
+    # Previously written paragraph:  
+    # {previous_paragraph}
 
-    The summary of the main storyline maintained by your ChatGPT assistant:
-    {memory}
+    # The summary of the main storyline maintained by your ChatGPT assistant:
+    # {memory}
 
-    The new paragraph written by your ChatGPT assistant:
-    {writer_new_paragraph}
+    # The new paragraph written by your ChatGPT assistant:
+    # {writer_new_paragraph}
 
-    Three plans of what to write next proposed by your ChatGPT assistant:
-    {parse_instructions(previous_plans)}
+    # Three plans of what to write next proposed by your ChatGPT assistant:
+    # {parse_instructions(previous_plans)}
 
-    Now start choosing, organize your output by strictly following the output format as below:
+    # Now start choosing, organize your output by strictly following the output format as below:
       
-    Selected Plan: 
-    <copy the selected plan here>
+    # Selected Plan: 
+    # <copy the selected plan here>
 
-    Reason:
-    <Explain why you choose the plan>
-    """
-        print(prompt+'\n'+'\n')
+    # Reason:
+    # <Explain why you choose the plan>
+    # """
+    #     print(prompt+'\n'+'\n')
 
-        response = get_api_response(prompt, self.language)
+    #     response = get_api_response(prompt, self.language)
 
-        plan = self.parse_plan(response)
-        while plan == None:
-            response = get_api_response(prompt, self.language)
-            plan= self.parse_plan(response)
+    #     plan = self.parse_plan(response)
+    #     while plan == None:
+    #         response = get_api_response(prompt, self.language)
+    #         plan= self.parse_plan(response)
 
-        if self.response_file:
-            with open(self.response_file, 'a', encoding='utf-8') as f:
-                f.write(f"Selected plan here:\n{response}\n\n")
+    #     if self.response_file:
+    #         with open(self.response_file, 'a', encoding='utf-8') as f:
+    #             f.write(f"Selected plan here:\n{response}\n\n")
 
-        return plan
+    #     return plan
         
     def parse_output(self, text):
         try:
@@ -136,13 +148,15 @@ class Human:
     def step(self):
 
         prompt = self.prepare_input()
-        print(prompt+'\n'+'\n')
-
+        # print(prompt+'\n'+'\n')
         response = get_api_response(prompt, self.language)
+        # print(f"check the output from openai {response}")
         self.output = self.parse_output(response)
+
         while self.output == None:
             response = get_api_response(prompt, self.language)
             self.output = self.parse_output(response)
+
         if self.response_file:
-            with open(self.response_file, 'a', encoding='utf-8') as f:
+            with open(f"storage/{self.response_file}", 'a', encoding='utf-8') as f:
                 f.write(f"Human's output here:\n{response}\n\n")

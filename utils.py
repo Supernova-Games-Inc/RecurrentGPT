@@ -9,11 +9,11 @@ def get_api_response(content: str, language, max_tokens=None):
     client = OpenAI(api_key=api_key,base_url=api_base)
     content_statement = 'You are a helpful and creative assistant for writing novel.'
     if language != "":
-        content_statement += f"You are professional in {language} language and all of your response should be able in {language} language."
+        content_statement += f"Please compose a text in {language} that reflects a professional tone and takes into account the nuances of native {language} speakers. When generating the text, assume you are a proficient speaker of {language} and use linguistic structures and wording that are typical of native {language} speakers."
 
     response = client.chat.completions.create(
-        model='gpt-3.5-turbo',
-        # model='gpt-4o-2024-05-13',
+        # model='gpt-3.5-turbo',
+        model='gpt-4o-2024-05-13',
         messages=[{
             'role': 'system',
             'content': content_statement
@@ -36,24 +36,33 @@ def get_content_between_a_b(a,b,text):
     return re.search(f"{a}(.*?)\n{b}", text, re.DOTALL).group(1).strip()
 
 
-def get_init(init_text=None,text=None,response_file=None):
+def get_init(init_text=None,text=None,language=None,response_file=None):
     """
     init_text: if the title, outline, and the first 3 paragraphs are given in a .txt file, directly read
     text: if no .txt file is given, use init prompt to generate
     """
-    if not init_text:
-        response = get_api_response(text)
-        print(response)
-
-        if response_file:
-            with open(response_file, 'a', encoding='utf-8') as f:
+    response = get_api_response(text, language)
+    if init_text:
+        response = init_text + response
+    
+    if response_file:
+            with open(f"storage/{response_file}", 'a', encoding='utf-8') as f:
                 f.write(f"Init output here:\n{response}\n\n")
-    else:
-        with open(init_text,'r',encoding='utf-8') as f:
-            response = f.read()
-        f.close()
+    # if not init_text:
+    #     response = get_api_response(text, language)
+    #     print(response)
+
+    #     if response_file:
+    #         with open(f"storage/{response_file}", 'a', encoding='utf-8') as f:
+    #             f.write(f"Init output here:\n{response}\n\n")
+    # else:
+    #     # with open(init_text,'r',encoding='utf-8') as f:
+    #     #     response = f.read()
+    #     # f.close()
+    #     response = init_text + get_api_response(text, language)
+    #     print(response)
     paragraphs = {
-        "name":"",
+        "Title":"",
         "Outline":"",
         "Paragraph 1":"",
         "Paragraph 2":"",
@@ -63,8 +72,7 @@ def get_init(init_text=None,text=None,response_file=None):
         "Instruction 2":"", 
         "Instruction 3":""    
     }
-    paragraphs['name'] = get_content_between_a_b('Name:','Outline',response)
-    
+    paragraphs['Title'] = get_content_between_a_b('Title:','Outline',response)
     paragraphs['Paragraph 1'] = get_content_between_a_b('Paragraph 1:','Paragraph 2:',response)
     paragraphs['Paragraph 2'] = get_content_between_a_b('Paragraph 2:','Paragraph 3:',response)
     paragraphs['Paragraph 3'] = get_content_between_a_b('Paragraph 3:','Summary',response)
@@ -84,7 +92,6 @@ def get_init(init_text=None,text=None,response_file=None):
             break
     if paragraphs['Outline'] == '':
         paragraphs['Outline'] = get_content_between_a_b('Outline:','Paragraph',response)
-
 
     return paragraphs
 

@@ -120,7 +120,7 @@ class RecurrentGPT:
 
         prompt = self.prepare_input()
 
-        print(prompt+'\n'+'\n')
+        # print(prompt+'\n'+'\n')
 
         response = get_api_response(prompt, self.language)
 
@@ -129,10 +129,13 @@ class RecurrentGPT:
             response = get_api_response(prompt, self.language)
             self.output = self.parse_output(response)
         if self.response_file:
-            with open(self.response_file, 'a', encoding='utf-8') as f:
+            with open(f"storage/{self.response_file}", 'a', encoding='utf-8') as f:
                 f.write(f"Writer's output here:\n{response}\n\n")
 
-        self.long_memory.append(self.input["output_paragraph"])
-        print()
+        # seperate = self.input["output_paragraph"].split("\n\n")
+        # for each in seperate:
+        #     self.long_memory.append(each)
+
+        self.long_memory.append(self.input["output_paragraph"].replace("\n\n", " "))
         self.memory_index = self.embedder.encode(
             self.long_memory, convert_to_tensor=True)
